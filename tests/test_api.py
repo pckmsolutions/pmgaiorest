@@ -14,7 +14,7 @@ REQ_BASE = 'http://base.com'
 REQ_ENDPOINT = 'myep'
 REQ_URL = f'{REQ_BASE}/{REQ_ENDPOINT}'
 REQ_AUTH_ARGS = {'token_type': 'Bearer', 'access_token': 'acc_tok'}
-REQ_HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Bearer acc_tok'}
+REQ_HEADERS = {'Content-Type': 'application/json', 'Authorization': 'Bearer acc_tok', 'Accept': 'application/json'}
 
 @pytest.fixture
 def base_session():

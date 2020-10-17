@@ -5,11 +5,11 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 class ApiBase:
-    def __init__(self, aiohttp_session, base_url, connect_args, *, handle_reconnect=None):
+    def __init__(self, aiohttp_session, base_url, header_args, *, handle_reconnect=None):
         self.aiohttp_session = aiohttp_session
 
         self.base_url = base_url
-        self.base_headers = self.create_headers(**connect_args)
+        self.base_headers = self.create_headers(**header_args)
 
         self.get = self._resp_wrap(self.aiohttp_session.get, handle_reconnect)
         self.get_with_headers = self._resp_wrap(
@@ -43,7 +43,7 @@ class ApiBase:
 
                 reconnect_args = handle_reconnect()
     
-                if not reconnect_args:
+                if reconnect_args is None:
                     # original error
                     resp.raise_for_status()
 
@@ -53,7 +53,10 @@ class ApiBase:
         return wrapper
 
     def create_headers(self, **kwargs):
-        headers = {hdrs.CONTENT_TYPE: 'application/json'}
+        headers = {
+                hdrs.CONTENT_TYPE: 'application/json',
+                hdrs.ACCEPT: 'application/json',
+                }
         access_token = kwargs.get('access_token')
         if access_token is not None:
             token_type = kwargs.get('token_type', 'Bearer')
