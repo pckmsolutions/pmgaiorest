@@ -1,6 +1,7 @@
 from aiohttp.web_exceptions import HTTPUnauthorized
 from aiohttp import hdrs
 from logging import getLogger
+from urllib import parse
 
 logger = getLogger(__name__)
 
@@ -16,11 +17,21 @@ class ApiBase:
                 self.aiohttp_session.get, handle_reconnect, with_headers=True)
         self.post = self._resp_wrap(self.aiohttp_session.post, handle_reconnect)
 
+    def update_header_args(self, header_args):
+        self.base_headers = self.create_headers(**header_args)
+
     def _resp_wrap(self, rem_call, handle_reconnect, *, with_headers=False):
         async def wrapper(*args, **kwargs):
             headers = kwargs.pop('headers',{})
             headers.update(self.base_headers)
-            uri = f'{self.base_url}/{args[0]}'
+            path = args[0]
+            if path is not None:
+                uri = f'{self.base_url}/{args[0]}'
+            else:
+                full_path = kwargs.pop('full_path', 0)
+                assert full_path is not None
+                parsed = parse.urlparse(self.base_url)
+                uri = parse.urlunparse(parsed._replace(path=full_path))
 
             connect_retries = 1
             while True:

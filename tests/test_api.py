@@ -10,7 +10,7 @@ from pmgaiorest import ApiBase
 RESP_JSON = '{"hello": 123}'
 RESP_HEADERS = '{"Content-Type": "application/json"}'
 
-REQ_BASE = 'http://base.com'
+REQ_BASE = 'http://base.com/api_v1/2.0'
 REQ_ENDPOINT = 'myep'
 REQ_URL = f'{REQ_BASE}/{REQ_ENDPOINT}'
 REQ_AUTH_ARGS = {'token_type': 'Bearer', 'access_token': 'acc_tok'}
@@ -66,6 +66,46 @@ async def test_get(session, api_base):
 
     assert json == RESP_JSON
     session.get.assert_called_once_with(REQ_URL, headers=REQ_HEADERS)
+
+@pytest.mark.asyncio
+async def test_get_no_base(session, api_base):
+    json = await api_base.get(None, full_path='v2/different')
+
+    assert json == RESP_JSON
+    session.get.assert_called_once_with('http://base.com/v2/different', headers=REQ_HEADERS)
+
+@pytest.mark.asyncio
+async def test_get_update_headers(session, api_base):
+    json = await api_base.get(REQ_ENDPOINT)
+
+    assert json == RESP_JSON
+    session.get.assert_called_once_with(REQ_URL, headers=REQ_HEADERS)
+    session.get.reset_mock()
+
+    api_base.update_header_args({'access_token': 'new_acc_tok'})
+
+    json = await api_base.get(REQ_ENDPOINT)
+    assert json == RESP_JSON
+    new_heads = {'Content-Type': 'application/json', 'Authorization': 'Bearer new_acc_tok', 'Accept': 'application/json'}
+    session.get.assert_called_once_with(REQ_URL, headers=new_heads)
+
+@pytest.mark.asyncio
+async def test_get_add_to_headers(session, api_base):
+    json = await api_base.get(REQ_ENDPOINT)
+
+    assert json == RESP_JSON
+    session.get.assert_called_once_with(REQ_URL, headers=REQ_HEADERS)
+    session.get.reset_mock()
+
+    def _dif_headers(*args, **kwargs):
+        return {'stuff': 'stufff'}
+
+    api_base.create_headers = _dif_headers # override the method
+    api_base.update_header_args({})
+
+    json = await api_base.get(REQ_ENDPOINT)
+    assert json == RESP_JSON
+    session.get.assert_called_once_with(REQ_URL, headers={'stuff': 'stufff'})
 
 @pytest.mark.asyncio
 async def test_post(session, api_base):
