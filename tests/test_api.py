@@ -5,7 +5,7 @@ from unittest import mock
 from aiohttp import ClientSession, ClientResponse
 from aiohttp.client_exceptions import ClientResponseError
 
-from pmgaioapi import ApiBase
+from pmgaiorest import ApiBase
 
 RESP_JSON = '{"hello": 123}'
 RESP_HEADERS = '{"Content-Type": "application/json"}'
