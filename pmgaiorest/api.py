@@ -6,16 +6,22 @@ from urllib import parse
 logger = getLogger(__name__)
 
 class ApiBase:
-    def __init__(self, aiohttp_session, base_url, header_args, *, handle_reconnect=None):
+    def __init__(self, aiohttp_session, base_url, *,
+            header_args=None,
+            handle_reconnect=None,
+            auth=None):
         self.aiohttp_session = aiohttp_session
 
         self.base_url = base_url
-        self.base_headers = self.create_headers(**header_args)
+        self.base_headers = self.create_headers(**(header_args or {}))
+        self.auth = auth
 
         self.get = self._resp_wrap(self.aiohttp_session.get, handle_reconnect)
         self.get_with_headers = self._resp_wrap(
                 self.aiohttp_session.get, handle_reconnect, with_headers=True)
         self.post = self._resp_wrap(self.aiohttp_session.post, handle_reconnect)
+        self.put = self._resp_wrap(self.aiohttp_session.put, handle_reconnect)
+        self.patch = self._resp_wrap(self.aiohttp_session.patch, handle_reconnect)
 
     def update_header_args(self, header_args):
         self.base_headers = self.create_headers(**header_args)
@@ -35,6 +41,8 @@ class ApiBase:
 
             connect_retries = 1
             while True:
+                if self.auth is not None:
+                    kwargs['auth'] = self.auth
                 resp = await rem_call(uri, *args[1:], headers=headers, **kwargs)
 
                 if 200 <= resp.status <= 299:
@@ -43,6 +51,7 @@ class ApiBase:
                             else (json, resp.headers))
 
                 if handle_reconnect is None or connect_retries <= 0:
+                    logger.debug('Failed request. Responded with %s', await resp.json() )
                     resp.raise_for_status()
 
                 connect_retries -= 1
