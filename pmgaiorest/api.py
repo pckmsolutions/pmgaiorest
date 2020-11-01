@@ -51,7 +51,7 @@ class ApiBase:
                             else (json, resp.headers))
 
                 if handle_reconnect is None or connect_retries <= 0:
-                    logger.debug('Failed request. Responded with %s', await resp.json() )
+                    logger.debug('Failed request. Responded with %s', await resp.text())
                     resp.raise_for_status()
 
                 connect_retries -= 1
