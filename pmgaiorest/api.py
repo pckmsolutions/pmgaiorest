@@ -22,6 +22,7 @@ class ApiBase:
         self.post = self._resp_wrap(self.aiohttp_session.post, handle_reconnect)
         self.put = self._resp_wrap(self.aiohttp_session.put, handle_reconnect)
         self.patch = self._resp_wrap(self.aiohttp_session.patch, handle_reconnect)
+        self.delete = self._resp_wrap(self.aiohttp_session.delete, handle_reconnect)
 
     def update_header_args(self, header_args):
         self.base_headers = self.create_headers(**header_args)
