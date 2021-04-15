@@ -1,7 +1,10 @@
 from aiohttp.web_exceptions import HTTPUnauthorized
+from aiohttp.client_exceptions import ContentTypeError, ClientResponseError
 from aiohttp import hdrs
 from logging import getLogger
 from urllib import parse
+
+from .exceptions import EnrichedClientResponseError
 
 logger = getLogger(__name__)
 
@@ -47,18 +50,21 @@ class ApiBase:
                 resp = await rem_call(uri, *args[1:], headers=headers, **kwargs)
 
                 if 200 <= resp.status <= 299:
-                    json = await resp.json() 
+                    try:
+                        json = await resp.json() 
+                    except ContentTypeError:
+                        json = None
                     return (json if not with_headers
                             else (json, resp.headers))
 
+                logger.debug('Failed request. Responded with %s', await resp.text())
                 if handle_reconnect is None or connect_retries <= 0:
-                    logger.debug('Failed request. Responded with %s', await resp.text())
-                    resp.raise_for_status()
+                    await _raise_for_status(resp)
 
                 connect_retries -= 1
 
                 if resp.status != HTTPUnauthorized.status_code:
-                    resp.raise_for_status()
+                    await _raise_for_status(resp)
 
                 logger.warning(f'Request unauthorised {resp.status} - attempting to reconnect')
 
@@ -66,7 +72,7 @@ class ApiBase:
     
                 if reconnect_args is None:
                     # original error
-                    resp.raise_for_status()
+                    await _raise_for_status(resp)
 
                 self.base_headers = self.create_headers(**reconnect_args)
                 headers.update(self.base_headers)
@@ -84,5 +90,18 @@ class ApiBase:
             headers[hdrs.AUTHORIZATION] = f'{token_type} {access_token}'
         return headers
 
-                
+async def _raise_for_status(resp): 
+    json = text = exception = None
 
+    try:
+        json = await resp.json()
+    except ContentTypeError:
+        text = await resp.text()
+
+    try:
+        resp.raise_for_status()
+    except ClientResponseError as ex:
+        exception = ex
+
+    if exception:
+        raise EnrichedClientResponseError(exception, text, json)
