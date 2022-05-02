@@ -1,3 +1,6 @@
+'''
+Base for aio api calling
+'''
 from aiohttp.web_exceptions import HTTPUnauthorized
 from aiohttp.client_exceptions import ContentTypeError, ClientResponseError
 from aiohttp import hdrs
